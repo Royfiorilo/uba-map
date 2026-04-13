@@ -5,34 +5,69 @@ import { carrera } from '../data/medicina';
 
 export default function ProgressBar() {
   const { approvedIds } = useCareerStore();
-  
-  const totalMaterias = carrera.nodos.length;
-  const aprobadas = approvedIds.length;
-  const porcentaje = totalMaterias === 0 ? 0 : Math.round((aprobadas / totalMaterias) * 100);
+
+const getStats = (cicloNombre: string) => {
+  const materias = carrera.nodos.filter(n => n.ciclo.toLowerCase() === cicloNombre.toLowerCase());
+  let total = materias.length;
+  let aprobadas = approvedIds.filter(id => materias.some(m => m.id === id)).length;
+
+  // Lógica especial para Electivas: Con 2 ya cumplió el ciclo
+  if (cicloNombre.toLowerCase() === 'electivas') {
+    total = 2; // Seteamos el tope en 2
+    if (aprobadas > 2) aprobadas = 2; 
+  }
+
+  const porcentaje = total === 0 ? 0 : (aprobadas / total) * 100;
+  return { porcentaje, aprobadas, total };
+};
+
+  const cbc = getStats('CBC');
+  const biomedico = getStats('Biomédico');
+  const clinico = getStats('Clínico');
+  const especialidades = getStats('Especialidades');
+  const iar = getStats('IAR');
+  const electivas = getStats('Electivas');
+
+  // Definimos los pesos visuales para que la suma de todos de 100%
+  // CBC (15%), Biomédico (20%), Clínico/Esp (45%), IAR (15%), Electivas (5%)
+  const segmentos = [
+    { stats: cbc, color: 'from-emerald-500 to-emerald-400', weight: 15, label: 'CBC' },
+    { stats: biomedico, color: 'from-blue-500 to-blue-400', weight: 20, label: 'Bio' },
+    { stats: clinico, color: 'from-sky-500 to-indigo-500', weight: 30, label: 'Clín' },
+    { stats: especialidades, color: 'from-cyan-500 to-cyan-400', weight: 15, label: 'Esp' },
+    { stats: iar, color: 'from-amber-500 to-orange-400', weight: 15, label: 'IAR' },
+    { stats: electivas, color: 'from-purple-600 to-fuchsia-500', weight: 5, label: 'Elec' },
+  ];
 
   return (
-    <div className="w-full bg-[#1a1a1a] border-t border-zinc-800 flex items-center px-6 py-2 text-xs font-medium text-zinc-300 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
-      {/* Contadores y Stats */}
-      <div className="flex items-center gap-4 mr-6 min-w-max">
-        <div className="flex flex-col">
-          <span className="text-zinc-500 text-[10px] uppercase tracking-wider">Progreso</span>
-          <span className="text-white text-lg font-bold">{porcentaje}%</span>
-        </div>
-        <div className="flex flex-col">
-          <span className="text-zinc-500 text-[10px] uppercase tracking-wider">Materias</span>
-          <span className="text-white text-sm">{aprobadas} de {totalMaterias}</span>
-        </div>
+    <div className="w-full bg-zinc-950/90 backdrop-blur-md border-t border-white/10 p-6 flex flex-col gap-4">
+      {/* Stats con mejores indicadores */}
+      <div className="flex flex-wrap gap-8">
+        {segmentos.map((s) => (
+          <div key={s.label} className="flex flex-col">
+            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-tighter">{s.label}</span>
+            <span className={`text-sm font-bold bg-gradient-to-r ${s.color} bg-clip-text text-transparent`}>
+              {Math.round(s.stats.porcentaje)}%
+            </span>
+          </div>
+        ))}
       </div>
 
-      {/* Barra Visual (Estilo FIUBA Map) */}
-      <div className="flex-1 h-6 bg-zinc-800 rounded-md overflow-hidden flex shadow-inner">
-        <div 
-          className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-500 ease-out flex items-center justify-end px-2"
-          style={{ width: `${porcentaje}%` }}
-        >
-          {/* Un pequeño tramado para que se vea como en tu captura */}
-          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgo8cmVjdCB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjZmZmIiBmaWxsLW9wYWNpdHk9IjAuMSIvPgo8cGF0aCBkPSJNMCA4TDggMFpNOCA4TDE2IDBaTTAgMTZMODg4WiIgc3Ryb2tlPSIjZmZmIiBzdHJva2Utb3BhY2l0eT0iMC4xIiBzdHJva2Utd2lkdGg9IjEiLz4KPC9zdmc+')] opacity-20" />
-        </div>
+      {/* Barra Gruesa y Neon (h-8 es el doble de la anterior) */}
+      <div className="flex h-8 w-full bg-zinc-900 rounded-lg overflow-hidden border border-white/5 shadow-2xl relative">
+        {segmentos.map((s) => (
+          <div 
+            key={s.label}
+            className={`h-full bg-gradient-to-r ${s.color} transition-all duration-700 ease-out relative group`}
+            style={{ 
+              width: `${(s.stats.porcentaje / 100) * s.weight}%`,
+              boxShadow: s.stats.porcentaje > 0 ? '0 0 15px rgba(255,255,255,0.1)' : 'none'
+            }}
+          >
+            {/* Brillo interno para dar profundidad */}
+            <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+          </div>
+        ))}
       </div>
     </div>
   );
