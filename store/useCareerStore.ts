@@ -2,28 +2,35 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 interface CareerState {
-  approvedIds: string[];
-  toggleMateria: (id: string) => void;
-  setPadrón: (padron: string) => void;
-  padron: string | null;
+  currentCareer: string;
+  approvalsByCareer: Record<string, string[]>;
+  setCareer: (career: string) => void;
+  toggleMateria: (materiaId: string) => void;
 }
 
 export const useCareerStore = create<CareerState>()(
   persist(
     (set) => ({
-      approvedIds: [],
-      padron: null,
-      
-      toggleMateria: (id) => set((state) => ({
-        approvedIds: state.approvedIds.includes(id)
-          ? state.approvedIds.filter((mId) => mId !== id)
-          : [...state.approvedIds, id]
-      })),
-
-      setPadrón: (padron) => set({ padron }),
+      currentCareer: 'medicina',
+      approvalsByCareer: {
+        medicina: [],
+        nutricion: [],
+      },
+      setCareer: (career) => set({ currentCareer: career }),
+      toggleMateria: (materiaId) => set((state) => {
+        const currentList = state.approvalsByCareer[state.currentCareer] || [];
+        const newList = currentList.includes(materiaId)
+          ? currentList.filter((id: string) => id !== materiaId)
+          : [...currentList, materiaId];
+        
+        return {
+          approvalsByCareer: { 
+            ...state.approvalsByCareer, 
+            [state.currentCareer]: newList 
+          }
+        };
+      }),
     }),
-    {
-      name: 'uba-map-storage', // Nombre de la key en localStorage 
-    }
+    { name: 'fmed-map-storage' }
   )
 );
